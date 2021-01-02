@@ -1,6 +1,8 @@
 // Include the cluster module
 var cluster = require('cluster');
 
+require('dotenv').config();
+
 // Code to run if we're in the master process
 if (cluster.isMaster) {
 
@@ -88,6 +90,10 @@ if (cluster.isMaster) {
             }
         });
     });
+
+    if (process.env.NODE_ENV === 'development') {
+        app.use('/static', express.static('static'));
+    }
 
     var port = process.env.PORT || 3000;
 
