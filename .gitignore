@@ -4,4 +4,3 @@
 .elasticbeanstalk/*
 /.env
 /dist/
-log.log
