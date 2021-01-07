@@ -9,9 +9,7 @@ const cluster: Cluster = require('cluster');
 
 require('dotenv').config();
 
-const logPath = process.env.NODE_ENV === 'development' ? null : path.join(process.cwd(), 'log.log');
-
-const logToRootFile = (info: string): Promise<null> => logLineAsync(logPath, info);
+const logToRootFile = (info: string): Promise<null> => logLineAsync(path.join(process.cwd(), 'log.log'), info);
 
 // Code to run if we're in the master process
 if (cluster.isMaster) {
@@ -44,15 +42,15 @@ if (cluster.isMaster) {
     const sns: SNS = new AWS.SNS();
     const ddb: DynamoDB = new AWS.DynamoDB();
 
-    const ddbTable = process.env.STARTUP_SIGNUP_TABLE;
-    const snsTopic = process.env.NEW_SIGNUP_TOPIC;
+    const ddbTable =  process.env.STARTUP_SIGNUP_TABLE;
+    const snsTopic =  process.env.NEW_SIGNUP_TOPIC;
     const app: core.Express = express();
 
     app.set('view engine', 'ejs');
     app.set('views', path.join(process.cwd(), 'views'));
-    app.use(bodyParser.urlencoded({extended: false}));
+    app.use(bodyParser.urlencoded({extended:false}));
 
-    app.get('/', function (req, res) {
+    app.get('/', function(req, res) {
         res.render('index', {
             static_path: 'static',
             theme: process.env.THEME || 'flatly',
@@ -71,8 +69,8 @@ if (cluster.isMaster) {
         ddb.putItem({
             'TableName': ddbTable,
             'Item': item,
-            'Expected': {email: {Exists: false}}
-        }, function (err, data) {
+            'Expected': { email: { Exists: false } }        
+        }, function(err, data) {
             if (err) {
                 let returnStatus = 500;
 
@@ -84,19 +82,19 @@ if (cluster.isMaster) {
                 logToRootFile('DDB Error: ' + err);
             } else {
                 sns.publish({
-                    'Message': 'Name: ' + req.body.name + "\r\nEmail: " + req.body.email
-                        + "\r\nPreviewAccess: " + req.body.previewAccess
-                        + "\r\nTheme: " + req.body.theme,
+                    'Message': 'Name: ' + req.body.name + "\r\nEmail: " + req.body.email 
+                                        + "\r\nPreviewAccess: " + req.body.previewAccess 
+                                        + "\r\nTheme: " + req.body.theme,
                     'Subject': 'New user sign up!!!',
                     'TopicArn': snsTopic
-                }, function (err, data) {
+                }, function(err, data) {
                     if (err) {
                         res.status(500).end();
                         logToRootFile('SNS Error: ' + err);
                     } else {
                         res.status(201).end();
                     }
-                });
+                });            
             }
         });
     });
