@@ -1,10 +1,5 @@
-import * as expressTS from "express";
-import * as core from "express-serve-static-core";
-import {Cluster} from "cluster";
-import {DynamoDB, SNS} from "aws-sdk";
-import path from "path";
 // Include the cluster module
-const cluster: Cluster = require('cluster');
+var cluster = require('cluster');
 
 require('dotenv').config();
 
@@ -30,21 +25,21 @@ if (cluster.isMaster) {
 
 // Code to run if we're in a worker process
 } else {
-    const AWS = require('aws-sdk');
-    const express = require('express');
-    const bodyParser = require('body-parser');
+    var AWS = require('aws-sdk');
+    var express = require('express');
+    var bodyParser = require('body-parser');
 
     AWS.config.region = process.env.REGION
 
-    const sns: SNS = new AWS.SNS();
-    const ddb: DynamoDB = new AWS.DynamoDB();
+    var sns = new AWS.SNS();
+    var ddb = new AWS.DynamoDB();
 
-    const ddbTable =  process.env.STARTUP_SIGNUP_TABLE;
-    const snsTopic =  process.env.NEW_SIGNUP_TOPIC;
-    const app: core.Express = express();
+    var ddbTable =  process.env.STARTUP_SIGNUP_TABLE;
+    var snsTopic =  process.env.NEW_SIGNUP_TOPIC;
+    var app = express();
 
     app.set('view engine', 'ejs');
-    app.set('views', path.join(__dirname, '../views'));
+    app.set('views', __dirname + '/views');
     app.use(bodyParser.urlencoded({extended:false}));
 
     app.get('/', function(req, res) {
@@ -55,8 +50,8 @@ if (cluster.isMaster) {
         });
     });
 
-    app.post('/signup', (req: expressTS.Request, res: expressTS.Response) => {
-        const item = {
+    app.post('/signup', function(req, res) {
+        var item = {
             'email': {'S': req.body.email},
             'name': {'S': req.body.name},
             'preview': {'S': req.body.previewAccess},
@@ -69,7 +64,7 @@ if (cluster.isMaster) {
             'Expected': { email: { Exists: false } }        
         }, function(err, data) {
             if (err) {
-                let returnStatus = 500;
+                var returnStatus = 500;
 
                 if (err.code === 'ConditionalCheckFailedException') {
                     returnStatus = 409;
