@@ -3,13 +3,10 @@ import * as core from "express-serve-static-core";
 import {Cluster} from "cluster";
 import {DynamoDB, SNS} from "aws-sdk";
 import path from "path";
-import {logLineAsync} from "./utils/logger";
 // Include the cluster module
 const cluster: Cluster = require('cluster');
 
 require('dotenv').config();
-
-const logToRootFile = (info: string): Promise<null> => logLineAsync(path.join(process.cwd(), 'log.log'), info);
 
 // Code to run if we're in the master process
 if (cluster.isMaster) {
@@ -18,7 +15,7 @@ if (cluster.isMaster) {
     var cpuCount = require('os').cpus().length;
 
     // Create a worker for each CPU
-    for (let i = 0; i < cpuCount; i += 1) {
+    for (var i = 0; i < cpuCount; i += 1) {
         cluster.fork();
     }
 
@@ -26,7 +23,7 @@ if (cluster.isMaster) {
     cluster.on('exit', function (worker) {
 
         // Replace the terminated workers
-        logToRootFile('Worker ' + worker.id + ' died :(');
+        console.log('Worker ' + worker.id + ' died :(');
         cluster.fork();
 
     });
@@ -47,7 +44,7 @@ if (cluster.isMaster) {
     const app: core.Express = express();
 
     app.set('view engine', 'ejs');
-    app.set('views', path.join(process.cwd(), 'views'));
+    app.set('views', path.join(__dirname, '../views'));
     app.use(bodyParser.urlencoded({extended:false}));
 
     app.get('/', function(req, res) {
@@ -79,7 +76,7 @@ if (cluster.isMaster) {
                 }
 
                 res.status(returnStatus).end();
-                logToRootFile('DDB Error: ' + err);
+                console.log('DDB Error: ' + err);
             } else {
                 sns.publish({
                     'Message': 'Name: ' + req.body.name + "\r\nEmail: " + req.body.email 
@@ -90,7 +87,7 @@ if (cluster.isMaster) {
                 }, function(err, data) {
                     if (err) {
                         res.status(500).end();
-                        logToRootFile('SNS Error: ' + err);
+                        console.log('SNS Error: ' + err);
                     } else {
                         res.status(201).end();
                     }
@@ -106,6 +103,6 @@ if (cluster.isMaster) {
     var port = process.env.PORT || 3000;
 
     var server = app.listen(port, function () {
-        logToRootFile('Server running at http://127.0.0.1:' + port + '/');
+        console.log('Server running at http://127.0.0.1:' + port + '/');
     });
 }
