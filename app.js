@@ -1,6 +1,7 @@
 // Include the cluster module
 var cluster = require('cluster');
 
+console.log('----------------->>', process.env);
 require('dotenv').config();
 
 // Code to run if we're in the master process
