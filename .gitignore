@@ -3,4 +3,3 @@
 # Elastic Beanstalk CLI Files
 .elasticbeanstalk/*
 /.env
-/app.js
