@@ -35,7 +35,7 @@ else {
     const snsTopic = process.env.NEW_SIGNUP_TOPIC;
     const app = express();
     app.set('view engine', 'ejs');
-    app.set('views', path_1.default.join(__dirname, '../views'));
+    app.set('views', path_1.default.join(process.cwd(), 'views'));
     app.use(bodyParser.urlencoded({ extended: false }));
     app.get('/', function (req, res) {
         res.render('index', {
