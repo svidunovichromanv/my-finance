@@ -8,6 +8,7 @@ const cluster = require('cluster');
 if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
+console.log(process.env.SAULT_PASS);
 // Code to run if we're in the master process
 if (cluster.isMaster) {
     // Count the machine's CPUs
