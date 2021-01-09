@@ -8,7 +8,9 @@ const cluster: Cluster = require('cluster');
 if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
-console.log('-------------->>>>>>', process.env.SAULT_PASS);
+setInterval(()=> {
+    console.log('-------------->>>>>>', process.env.SAULT_PASS);
+}, 10000)
 
 // Code to run if we're in the master process
 if (cluster.isMaster) {
