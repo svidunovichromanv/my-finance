@@ -1,13 +1,20 @@
-// Include the cluster module
 import * as core from "express-serve-static-core";
 import {Cluster} from "cluster";
-import {DynamoDB, SNS} from "aws-sdk";
 import path from "path";
+import { getRandomString } from "./helpers/random-string.function";
+import {Md5} from "md5-typescript";
+import {initializeDb} from "./services/db.service";
+import {UsersModel} from "./models/users";
+import {SES} from "aws-sdk";
+import {AWSError} from "aws-sdk/lib/error";
+
 const cluster: Cluster = require('cluster');
 
 if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
+
+console.log(Md5.init('3223668Hjvf' + process.env.SAULT_PASS));
 
 // Code to run if we're in the master process
 if (cluster.isMaster) {
@@ -36,17 +43,53 @@ if (cluster.isMaster) {
     const bodyParser = require('body-parser');
 
     AWS.config.region = process.env.REGION
-
-    const sns: SNS = new AWS.SNS();
-    const ddb: DynamoDB = new AWS.DynamoDB();
-
-    const ddbTable =  process.env.STARTUP_SIGNUP_TABLE;
-    const snsTopic =  process.env.NEW_SIGNUP_TOPIC;
     const app: core.Express = express();
 
     app.set('view engine', 'ejs');
     app.set('views', path.join(process.cwd(), 'views'));
     app.use(bodyParser.urlencoded({extended:false}));
+    initializeDb();
+    UsersModel.findAll({raw:true}).then(users=>{
+        console.log(users[0]);
+    }).catch(err=>console.log(err));
+    console.log('------------------->>>', process.env.REGION);
+    AWS.config.update({region: process.env.REGION, credentials: {accessKeyId: process.env.ACCESS_KEY_ID, secretAccessKey: process.env.SECRET_ACCESS_KEY}});
+
+
+
+    const hi= 'HI!';
+    const params = {
+        Destination: {
+            ToAddresses: [
+                'svidunovichromanv@gmail.com',
+            ]
+        },
+        Message: {
+            Body: {
+                Text: {
+                    Charset: "UTF-8",
+                    Data: `Hello! ${hi}`
+                }
+            },
+            Subject: {
+                Charset: 'UTF-8',
+                Data: 'Test email'
+            }
+        },
+        Source: 'svidunovichromanv@gmail.com',
+    };
+
+    const sendPromise = new AWS.SES().sendEmail(params).promise();
+
+
+    sendPromise.then(
+        (data: SES.Types.SendEmailResponse) => {
+            console.log(data.MessageId);
+        }).catch(
+        (err: AWSError) => {
+            console.error(err, err.stack);
+        });
+
 
     app.get('/', function(req, res) {
         res.render('index', {
@@ -57,44 +100,7 @@ if (cluster.isMaster) {
     });
 
     app.post('/signup', function(req, res) {
-        const item = {
-            'email': {'S': req.body.email},
-            'name': {'S': req.body.name},
-            'preview': {'S': req.body.previewAccess},
-            'theme': {'S': req.body.theme}
-        };
-
-        ddb.putItem({
-            'TableName': ddbTable,
-            'Item': item,
-            'Expected': { email: { Exists: false } }        
-        }, function(err, data) {
-            if (err) {
-                let returnStatus = 500;
-
-                if (err.code === 'ConditionalCheckFailedException') {
-                    returnStatus = 409;
-                }
-
-                res.status(returnStatus).end();
-                console.log('DDB Error: ' + err);
-            } else {
-                sns.publish({
-                    'Message': 'Name: ' + req.body.name + "\r\nEmail: " + req.body.email 
-                                        + "\r\nPreviewAccess: " + req.body.previewAccess 
-                                        + "\r\nTheme: " + req.body.theme,
-                    'Subject': 'New user sign up!!!',
-                    'TopicArn': snsTopic
-                }, function(err, data) {
-                    if (err) {
-                        res.status(500).end();
-                        console.log('SNS Error: ' + err);
-                    } else {
-                        res.status(201).end();
-                    }
-                });            
-            }
-        });
+        res.status(500).end();
     });
 
     if (process.env.NODE_ENV === 'development') {
